@@ -1,92 +1,47 @@
-# src/tools/rag_tool.py
-
 import os
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
 from llama_index.llms.openai import (
     OpenAI,
-)  # Note: LlamaIndex uses OpenAI naming, but you can configure it for Gemini
+)  # Used internally by LlamaIndex for some functions
+from crewai_tools import Tool  # Needed for the agents to use the functions
 
 # --- Configuration ---
-# Point to your data directory relative to the project root
 COMPLIANCE_DIR = "data/compliance_docs"
 TAX_DIR = "data/tax_docs"
 
-# Note: You need to configure the LLM for LlamaIndex to use Gemini.
-# A simple way for a project prototype is to use a local or cloud provider endpoint.
-# For simplicity, we'll assume a standard setup using environment variables for the prototype.
 
-
-def build_compliance_index():
-    """Loads compliance documents and creates a searchable vector index."""
-    if not os.path.exists(COMPLIANCE_DIR):
-        print(f"Error: Compliance directory not found at {COMPLIANCE_DIR}")
+# --- Index Building Function ---
+def build_index(directory):
+    """Loads documents from a directory and creates a searchable vector index."""
+    if not os.path.exists(directory):
+        print(f"Warning: RAG directory not found at {directory}")
         return None
-
-    documents = SimpleDirectoryReader(COMPLIANCE_DIR).load_data()
-    # Using default VectorStoreIndex for simplicity
-    index = VectorStoreIndex.from_documents(documents)
-    return index
-
-
-def build_tax_index():
-    """Loads tax documents and creates a searchable vector index."""
-    if not os.path.exists(TAX_DIR):
-        print(f"Error: Tax directory not found at {TAX_DIR}")
+    try:
+        # SimpleDirectoryReader loads all .pdf, .txt, etc., from the directory
+        documents = SimpleDirectoryReader(directory).load_data()
+        index = VectorStoreIndex.from_documents(documents)
+        return index
+    except Exception as e:
+        print(f"Error building index for {directory}: {e}")
         return None
-
-    documents = SimpleDirectoryReader(TAX_DIR).load_data()
-    index = VectorStoreIndex.from_documents(documents)
-    return index
 
 
 # Build the indices once when the application starts
-COMPLIANCE_INDEX = build_compliance_index()
-TAX_INDEX = build_tax_index()
+COMPLIANCE_INDEX = build_index(COMPLIANCE_DIR)
+TAX_INDEX = build_index(TAX_DIR)
 
-# --- Query Tools ---
+# --- Define the Query Functions (Tools) ---
 
+# The compliance query tool will be used by the Regulatory Compliance Agent
+compliance_query_tool = Tool(
+    name="Compliance Auditor",
+    func=lambda question: str(COMPLIANCE_INDEX.as_query_engine().query(question)),
+    description="Tool for querying the indexed SEC, FINRA, and legal compliance documents. Use this to verify the legality and fiduciary status of any financial advice.",
+)
 
-def query_compliance_database(question: str) -> str:
-    """
-    TOOL: Searches the SEC/FINRA database to verify a rule or compliance status.
-    Used by the Regulatory Compliance Agent.
-    """
-    if COMPLIANCE_INDEX is None:
-        return "Compliance database unavailable."
-
-    query_engine = COMPLIANCE_INDEX.as_query_engine()
-    response = query_engine.query(question)
-
-    # Return both the answer and the source node for auditing
-    return (
-        str(response)
-        + f" (Source: {response.source_nodes[0].metadata.get('file_name', 'N/A')})"
-    )
-
-
-def query_tax_database(question: str) -> str:
-    """
-    TOOL: Searches the IRC/IRS database for tax code sections.
-    Used by the Tax Optimization Agent.
-    """
-    if TAX_INDEX is None:
-        return "Tax database unavailable."
-
-    query_engine = TAX_INDEX.as_query_engine()
-    response = query_engine.query(question)
-
-    # Return both the answer and the source node for auditing
-    return (
-        str(response)
-        + f" (Source: {response.source_nodes[0].metadata.get('file_name', 'N/A')})"
-    )
-
-
-if __name__ == "__main__":
-    # Simple test for the index
-    print("Compliance Index Ready. Testing query...")
-    if COMPLIANCE_INDEX:
-        result = query_compliance_database(
-            "What is the fiduciary duty required for a registered investment advisor?"
-        )
-        print("Query Result:", result)
+# The tax query tool will be used by the Tax Optimization Agent
+tax_query_tool = Tool(
+    name="Tax Code Expert",
+    func=lambda question: str(TAX_INDEX.as_query_engine().query(question)),
+    description="Tool for querying the indexed Internal Revenue Code (IRC) and IRS publications. Use this to find specific tax rules, exemptions, and optimal account types (Roth vs. Traditional).",
+)
