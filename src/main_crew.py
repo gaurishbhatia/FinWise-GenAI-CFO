@@ -2,6 +2,7 @@
 from crewai import Agent, Crew, Process, Task
 from langchain_google_genai import ChatGoogleGenerativeAI
 from config import GEMINI_API_KEY
+from src.tools.rag_tool import query_compliance_database, query_tax_database
 
 # 1. Initialize the LLM (Agent Brain)
 gemini_llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", api_key=GEMINI_API_KEY)
@@ -25,6 +26,8 @@ compliance_agent = Agent(
     backstory="A specialized, risk-averse legal AI responsible for generating the final Audit Trail and Compliance Confidence Score.",
     llm=gemini_llm,
     verbose=True,
+    tools=[query_compliance_database],
+    allow_delegation=False,
     # Note: This agent will be heavily customized with RAG in the next step.
 )
 
@@ -37,6 +40,8 @@ tax_agent = Agent(
     backstory="Focuses purely on minimizing lifetime tax liability through vehicles like Roth accounts, 529s, etc.",
     llm=gemini_llm,
     verbose=True,
+    tools=[query_tax_database],
+    allow_delegation=True,
 )
 
 # 4. Risk & Simulation Agent
