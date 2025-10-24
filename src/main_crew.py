@@ -90,36 +90,63 @@ output_agent = Agent(
 )
 
 
-# --- 4. Define the Tasks (The Workflow) ---
-# This defines the order and collaboration required by the agents.
+# --- 4. Define the Tasks (The Complete 6-Step Workflow) ---
 
 # Task 1: Strategy Creation
 task_strategy = Task(
-    description="Analyze the user's age (30), income ($120k), risk (moderate), and retirement goal (age 60). Draft a preliminary strategy covering debt, savings rate, and asset allocation percentages.",
+    description="Analyze the user's current profile (Age 30, Income $120k, Risk Moderate, Retirement Age 60). Draft a preliminary strategic plan covering debt reduction, optimal savings rate, and target asset allocation percentages.",
     agent=strategy_agent,
-    expected_output="A preliminary 30-year financial plan with 5 key strategic pillars.",
+    expected_output="A preliminary 30-year financial plan with 5 key strategic pillars for growth and stability.",
 )
 
-# Task 2: Tax Optimization and Compliance Check (Parallel/Sequential)
+# Task 2: Tax Optimization and Compliance Check (Uses RAG Tool: Tax Code Expert)
 task_tax_check = Task(
-    description="Review the strategy from Task 1. Use the 'Tax Code Expert' tool to find the most tax-efficient way to execute the savings rate (Roth vs. Traditional 401k/IRA). Report the IRC section used.",
+    description="Review the high-level strategy from Task 1. Use the 'Tax Code Expert' tool to determine the most tax-efficient way to execute the savings plan (e.g., maximizing Roth vs. Traditional contributions). Report the precise IRC section used for justification.",
     agent=tax_agent,
     context=[task_strategy],
     expected_output="A detailed tax recommendation citing the specific IRC rule that supports the chosen retirement account structure.",
 )
 
-# Task 3: Compliance Validation
+# Task 3: Compliance Validation (Uses RAG Tool: Compliance Auditor)
 task_compliance_audit = Task(
-    description="Audit the final strategy and tax recommendations from Task 1 & 2. Use the 'Compliance Auditor' tool to verify the advice meets Fiduciary Duty standards and SEC regulations. Generate a Compliance Confidence Score (90-100%).",
+    description="Audit the final Strategy and Tax recommendations from Task 1 & 2. Use the 'Compliance Auditor' tool to verify the advice meets Fiduciary Duty standards and SEC regulations. Generate a final Audit Trail with a Compliance Confidence Score (95%+ required).",
     agent=compliance_agent,
     context=[task_strategy, task_tax_check],
-    expected_output="A final compliance sign-off with an Audit Trail showing the SEC rules that were checked.",
+    expected_output="A final compliance sign-off with a verifiable Audit Trail and a Compliance Confidence Score.",
 )
 
-# NOTE: Add four more tasks for Portfolio Allocation, Risk Simulation, and Final Output.
+# Task 4: Risk Simulation and Stress Testing (Uses Tool: Monte Carlo Simulator)
+task_risk_test = Task(
+    description="Take the recommended portfolio allocation percentages and run a Monte Carlo simulation (use the 'Monte Carlo Simulator' tool). Also, generate a brief generative stress-test narrative (e.g., 'What happens if inflation hits 10%?'). Report the final probability of success.",
+    agent=risk_agent,
+    context=[task_strategy],
+    expected_output="A risk report detailing the probability of retirement success and a summary of vulnerabilities under stress scenarios.",
+)
+
+# Task 5: Tactical Allocation and Instrument Selection (Uses Tool: Market Data Retriever)
+task_portfolio_allocation = Task(
+    description="Based on the strategy and risk report, use the 'Market Data Retriever' tool to select 5-7 specific, low-cost investment instruments (ETFs/Indices) that align with the moderate risk profile and current market trends. Provide a rationale for each selection.",
+    agent=portfolio_agent,
+    context=[task_strategy, task_risk_test],
+    expected_output="A tactical list of 5-7 specific low-cost ETFs/Indices with detailed rationales for matching the strategy.",
+)
+
+# Task 6: Final Report Generation (Collects ALL outputs)
+task_final_report = Task(
+    description="Collect the outputs from all previous tasks (Strategy, Tax, Compliance Audit, Risk Report, Tactical List). Synthesize these into a single, cohesive, professional financial planning report, ready for export as a PDF/JSON.",
+    agent=output_agent,
+    context=[
+        task_strategy,
+        task_tax_check,
+        task_compliance_audit,
+        task_risk_test,
+        task_portfolio_allocation,
+    ],
+    expected_output="A final, polished financial planning report containing all verified recommendations, the Compliance Audit Trail, and the Risk Simulation summary.",
+)
 
 
-# --- 5. Assemble and Run the Crew ---
+# --- 5. Assemble and Run the Crew (Update the tasks list here) ---
 
 if __name__ == "__main__":
     financial_crew = Crew(
@@ -131,14 +158,18 @@ if __name__ == "__main__":
             portfolio_agent,
             output_agent,
         ],
+        # The main sequential workflow
         tasks=[
             task_strategy,
             task_tax_check,
             task_compliance_audit,
-        ],  # Only using the first three for this example
-        process=Process.sequential,  # Sequential ensures audit happens after strategy is drafted
+            task_risk_test,
+            task_portfolio_allocation,
+            task_final_report,
+        ],
+        process=Process.sequential,  # Ensures audit happens before finalization
         verbose=2,
-        manager_llm=gemini_llm,  # Use a powerful model for management/delegation
+        manager_llm=gemini_llm,
     )
 
     # Kick off the execution of the crew
