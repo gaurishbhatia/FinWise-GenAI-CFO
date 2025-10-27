@@ -10,31 +10,31 @@ from config import GEMINI_API_KEY
 # --- 1. Initialize Gemini LLM (Agent Brain) ---
 # Simple approach: Use CrewAI's built-in Gemini support
 try:
-    # Set environment variable for Gemini API key
-    import os
-    os.environ['GOOGLE_API_KEY'] = GEMINI_API_KEY
+    # Try to use LangChain Google GenAI integration
+    from langchain_google_genai import ChatGoogleGenerativeAI
     
-    # Use CrewAI's built-in Gemini support
+    # Initialize Gemini LLM
+    gemini_llm = ChatGoogleGenerativeAI(
+        model="gemini-1.5-pro",
+        google_api_key=GEMINI_API_KEY,
+        temperature=0.7
+    )
+    print("Gemini LLM initialized successfully using LangChain")
+    
+except ImportError:
+    print("LangChain Google GenAI not available, using CrewAI LLM...")
+    
+    # Use CrewAI's built-in LLM system
     from crewai.llm import LLM
-    gemini_llm = LLM(model="gemini/gemini-1.5-pro")
-    print("Gemini LLM initialized successfully using CrewAI")
+    gemini_llm = LLM(model="gpt-3.5-turbo", api_key="dummy_key_for_testing")
     
 except Exception as e:
     print(f"Error initializing Gemini: {e}")
-    print("Using mock LLM for testing...")
+    print("Using CrewAI LLM for testing...")
     
-    # Fallback to mock LLM
-    class MockLLM:
-        def __init__(self, model_name="mock-model"):
-            self.model_name = model_name
-        
-        def invoke(self, messages, **kwargs):
-            return "This is a mock response for testing purposes."
-        
-        def call(self, messages, **kwargs):
-            return self.invoke(messages, **kwargs)
-    
-    gemini_llm = MockLLM()
+    # Use CrewAI's built-in LLM system
+    from crewai.llm import LLM
+    gemini_llm = LLM(model="gpt-3.5-turbo", api_key="dummy_key_for_testing")
 
 # --- 2. Define Custom Tools (For Portfolio/Risk - Placeholder for later logic) ---
 

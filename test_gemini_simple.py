@@ -22,28 +22,32 @@ def test_gemini_api():
             print("Get your API key from: https://makersuite.google.com/app/apikey")
             return False
         
-        # Test with CrewAI's Gemini integration
-        from crewai.llm import LLM
+        # Test with direct Google Generative AI
+        import google.generativeai as genai
         
-        # Set environment variable
-        os.environ['GOOGLE_API_KEY'] = GEMINI_API_KEY
+        # Configure Gemini
+        genai.configure(api_key=GEMINI_API_KEY)
         
-        # Create Gemini LLM
-        llm = LLM(model="gemini/gemini-1.5-pro")
+        # Create Gemini model
+        model = genai.GenerativeModel('gemini-1.5-pro')
         
         # Test a simple query
-        response = llm.call("Hello, this is a test. Please respond with 'Gemini is working!'")
+        response = model.generate_content("Hello, this is a test. Please respond with 'Gemini is working!'")
         
         print("SUCCESS: Gemini API is working!")
-        print(f"Response: {response}")
+        print(f"Response: {response.text}")
         return True
         
+    except ImportError:
+        print("ERROR: Google Generative AI not installed")
+        print("Run: pip install google-generativeai")
+        return False
     except Exception as e:
         print(f"ERROR: {e}")
         print("\nTroubleshooting:")
         print("1. Make sure your API key is correct")
         print("2. Check your internet connection")
-        print("3. Run: pip install 'crewai[google-genai]'")
+        print("3. Run: pip install google-generativeai")
         return False
 
 if __name__ == "__main__":
