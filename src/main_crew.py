@@ -5,18 +5,36 @@ import os
 # This ensures Python can find 'config.py' one level up in the parent directory.
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from crewai import Agent, Crew, Process, Task
+from config import GEMINI_API_KEY
 
-# --- 1. Initialize a Mock LLM (Agent Brain) ---
-# For now, we'll use a simple mock LLM to test the project structure
-class MockLLM:
-    def __init__(self, model_name="mock-model"):
-        self.model_name = model_name
+# --- 1. Initialize Gemini LLM (Agent Brain) ---
+# Simple approach: Use CrewAI's built-in Gemini support
+try:
+    # Set environment variable for Gemini API key
+    import os
+    os.environ['GOOGLE_API_KEY'] = GEMINI_API_KEY
     
-    def invoke(self, messages, **kwargs):
-        # Return a simple mock response
-        return "This is a mock response for testing purposes."
-
-mock_llm = MockLLM()
+    # Use CrewAI's built-in Gemini support
+    from crewai.llm import LLM
+    gemini_llm = LLM(model="gemini/gemini-1.5-pro")
+    print("Gemini LLM initialized successfully using CrewAI")
+    
+except Exception as e:
+    print(f"Error initializing Gemini: {e}")
+    print("Using mock LLM for testing...")
+    
+    # Fallback to mock LLM
+    class MockLLM:
+        def __init__(self, model_name="mock-model"):
+            self.model_name = model_name
+        
+        def invoke(self, messages, **kwargs):
+            return "This is a mock response for testing purposes."
+        
+        def call(self, messages, **kwargs):
+            return self.invoke(messages, **kwargs)
+    
+    gemini_llm = MockLLM()
 
 # --- 2. Define Custom Tools (For Portfolio/Risk - Placeholder for later logic) ---
 
@@ -74,7 +92,7 @@ strategy_agent = Agent(
     role="Lead Financial Strategist",
     goal="Synthesize user inputs into a cohesive, multi-stage financial strategy (retirement, debt, goals).",
     backstory="Expert planner skilled at converting complex life goals into actionable financial roadmaps.",
-    llm=mock_llm,
+    llm=gemini_llm,
     verbose=True,
     allow_delegation=True,
 )
@@ -84,7 +102,7 @@ compliance_agent = Agent(
     role="SEC/Tax Compliance Auditor",
     goal="Rigidly check all planning and allocation advice against real-time US tax code (IRC) and financial regulations (SEC, FINRA).",
     backstory="A specialized, risk-averse legal AI responsible for generating the final Audit Trail and Compliance Confidence Score.",
-    llm=mock_llm,
+    llm=gemini_llm,
     verbose=True,
     allow_delegation=False,
 )
@@ -94,7 +112,7 @@ tax_agent = Agent(
     role="Income and Asset Tax Minimizer",
     goal="Generate the most tax-efficient structure for all investments and income streams.",
     backstory="Focuses purely on minimizing lifetime tax liability through vehicles like Roth accounts, 529s, etc.",
-    llm=mock_llm,
+    llm=gemini_llm,
     verbose=True,
     allow_delegation=True,
 )
@@ -104,7 +122,7 @@ risk_agent = Agent(
     role="Monte Carlo & Economic Stress Tester",
     goal="Quantify risk by simulating thousands of economic futures and stress-testing the portfolio and generating risk narratives.",
     backstory="A quantitative modeling expert that tests worst-case scenarios and reports the probability of failure.",
-    llm=mock_llm,
+    llm=gemini_llm,
     verbose=True,
 )
 
@@ -113,7 +131,7 @@ portfolio_agent = Agent(
     role="Tactical Investment Selector",
     goal="Translate high-level strategies into specific, low-cost investment instruments (ETFs, indices, etc.) that match the user's risk profile.",
     backstory="A tactical manager focused on efficient market access and rebalancing recommendations.",
-    llm=mock_llm,
+    llm=gemini_llm,
     verbose=True,
 )
 
@@ -122,7 +140,7 @@ output_agent = Agent(
     role="Report Finalizer and Execution Logger",
     goal="Format the final, compliant, and stress-tested advice into a professional PDF/JSON report, including the Audit Trail.",
     backstory="The final interface responsible for presenting results and managing cost/system logs.",
-    llm=mock_llm,
+    llm=gemini_llm,
     verbose=True,
     allow_delegation=False,
 )
@@ -207,7 +225,7 @@ if __name__ == "__main__":
         ],
         process=Process.sequential,  # Ensures audit happens before finalization
         verbose=True,
-        manager_llm=mock_llm,
+        manager_llm=gemini_llm,
     )
 
     # Kick off the execution of the crew

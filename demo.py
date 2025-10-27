@@ -47,6 +47,12 @@ def main():
     except ImportError:
         print("[FAIL] ChromaDB - Not installed")
     
+    try:
+        import google.generativeai
+        print("[OK] Google Generative AI - Gemini API")
+    except ImportError:
+        print("[FAIL] Google Generative AI - Not installed")
+    
     # Check data files
     print("\nData Files:")
     compliance_dir = "data/compliance_docs"
@@ -78,8 +84,8 @@ def main():
     print("[WARN] API key needs to be configured for full functionality")
     
     print("\nNext Steps:")
-    print("1. Get an OpenAI API key from: https://platform.openai.com/api-keys")
-    print("2. Update config.py with your API key")
+    print("1. Get a Google Gemini API key from: https://makersuite.google.com/app/apikey")
+    print("2. Update config.py with your Gemini API key")
     print("3. Run: python src/main_crew.py")
     
     print("\n" + "=" * 60)
