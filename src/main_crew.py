@@ -1,11 +1,17 @@
+import sys
+import os
+
+# --- ADD THESE THREE LINES ---
+# This ensures Python can find 'config.py' one level up in the parent directory.
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from crewai import Agent, Crew, Process, Task
 from langchain_google_genai import ChatGoogleGenerativeAI
-from mcp import Tool
+from langchain_core.tools import Tool
 from config import GEMINI_API_KEY
 from src.tools.rag_tool import (
     compliance_query_tool,
     tax_query_tool,
-)  # <-- NEW: Import the RAG tools!
+)
 
 # --- 1. Initialize the LLM (Agent Brain) ---
 gemini_llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", api_key=GEMINI_API_KEY)

@@ -3,7 +3,7 @@ from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
 from llama_index.llms.openai import (
     OpenAI,
 )  # Used internally by LlamaIndex for some functions
-from crewai_tools import Tool  # Needed for the agents to use the functions
+from langchain_core.tools import Tool  # Needed for the agents to use the functions
 
 # --- Configuration ---
 COMPLIANCE_DIR = "data/compliance_docs"
