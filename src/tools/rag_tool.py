@@ -1,10 +1,11 @@
 import os
-from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
-from llama_index.llms.openai import (
-    OpenAI,
-)  # Used internally by LlamaIndex for some functions
-from langchain_core.tools import Tool  # Needed for the agents to use the functions
+from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Settings
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
+from crewai_tools import Tool
 
+Settings.embed_model = HuggingFaceEmbedding(
+    model_name="sentence-transformers/all-MiniLM-L6-v2"
+)
 # --- Configuration ---
 COMPLIANCE_DIR = "data/compliance_docs"
 TAX_DIR = "data/tax_docs"
@@ -32,16 +33,59 @@ TAX_INDEX = build_index(TAX_DIR)
 
 # --- Define the Query Functions (Tools) ---
 
-# The compliance query tool will be used by the Regulatory Compliance Agent
+
+def query_compliance_database_func(question: str) -> str:
+    """
+    Searches the SEC/FINRA database to verify a rule or compliance status.
+    Used by the Regulatory Compliance Agent.
+    """
+    if COMPLIANCE_INDEX is None:
+        return "Compliance database unavailable."
+
+    query_engine = COMPLIANCE_INDEX.as_query_engine()
+    response = query_engine.query(question)
+
+    # Return both the answer and the source node for auditing
+    return (
+        str(response)
+        + f" (Source: {response.source_nodes[0].metadata.get('file_name', 'N/A')})"
+    )
+    pass
+
+
 compliance_query_tool = Tool(
     name="Compliance Auditor",
-    func=lambda question: str(COMPLIANCE_INDEX.as_query_engine().query(question)),
+    func=query_compliance_database_func,
     description="Tool for querying the indexed SEC, FINRA, and legal compliance documents. Use this to verify the legality and fiduciary status of any financial advice.",
 )
 
-# The tax query tool will be used by the Tax Optimization Agent
+
+def query_tax_database_func(question: str) -> str:
+    """
+    Searches the IRC/IRS database for tax code sections.
+    Used by the Tax Optimization Agent.
+    """
+    if TAX_INDEX is None:
+        return "Tax database unavailable."
+
+    query_engine = TAX_INDEX.as_query_engine()
+    response = query_engine.query(question)
+
+    # Return both the answer and the source node for auditing
+    return (
+        str(response)
+        + f" (Source: {response.source_nodes[0].metadata.get('file_name', 'N/A')})"
+    )
+    pass
+
+
 tax_query_tool = Tool(
     name="Tax Code Expert",
-    func=lambda question: str(TAX_INDEX.as_query_engine().query(question)),
+    func=query_tax_database_func,
     description="Tool for querying the indexed Internal Revenue Code (IRC) and IRS publications. Use this to find specific tax rules, exemptions, and optimal account types (Roth vs. Traditional).",
 )
+
+
+# # Note: The query tool names used in main_crew.py are now the decorated functions themselves.
+# compliance_query_tool = query_compliance_database_func
+# tax_query_tool = query_tax_database_func

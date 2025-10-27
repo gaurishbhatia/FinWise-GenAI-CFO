@@ -6,7 +6,7 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from crewai import Agent, Crew, Process, Task
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.tools import Tool
+from crewai_tools import Tool
 from config import GEMINI_API_KEY
 from src.tools.rag_tool import (
     compliance_query_tool,
@@ -17,19 +17,28 @@ from src.tools.rag_tool import (
 gemini_llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", api_key=GEMINI_API_KEY)
 
 # --- 2. Define Custom Tools (For Portfolio/Risk - Placeholder for later logic) ---
-# NOTE: Replace 'lambda' functions later with actual Python logic/API calls
+
+
+def market_data_func(x: str = None) -> str:
+    return "Simulated market data for S&P 500: +8.5% YTD. Real Estate: -2.0%."
+
+
 market_data_tool = Tool(
     name="Market Data Retriever",
-    func=lambda x: "Simulated market data for S&P 500: +8.5% YTD. Real Estate: -2.0%.",
+    func=market_data_func,
     description="Gathers real-time (simulated) market data for major indices and assets.",
 )
 
+
+def monte_carlo_func(x: str = None) -> str:
+    return "Monte Carlo simulation results: 82% probability of retirement success."
+
+
 monte_carlo_tool = Tool(
     name="Monte Carlo Simulator",
-    func=lambda x: "Monte Carlo simulation results: 82% probability of retirement success.",
+    func=monte_carlo_func,
     description="Runs 10,000 simulations against the proposed portfolio for risk quantification.",
 )
-
 
 # --- 3. Define all Six Agents ---
 
